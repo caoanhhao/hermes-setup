@@ -10,6 +10,9 @@ export AGENT_USER=$(id -un)
 [[ $AGENT_USER != hermes && $EUID != 0 ]] || { echo "Chạy bằng user chính của bạn, không sudo" >&2; exit 1; }
 [[ -f $HOME/.hermes/config.yaml ]] || { echo "Chưa có ~/.hermes/config.yaml: chạy sudo bash $DIR/50-move-to-main-user.sh trước" >&2; exit 1; }
 
+# Dựng lại môi trường Python theo đường dẫn mới: dấu (stamp) cũ tính từ /home/hermes nên Hermes báo
+# "install out of sync" cho tới khi chạy lại bước này (cần script 50 đã đổi khoá plugin-sources).
+hermes pm install --extra telegram
 bash "$DIR/30-gateway.sh"
 bash "$DIR/21-jev-user-agent.sh"
 bash "$DIR/11-soul.sh"
