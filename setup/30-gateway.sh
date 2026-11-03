@@ -43,6 +43,11 @@ else
   hermes pm install --extra telegram
 fi
 hermes gateway install --if-missing --start-now --start-on-login
+# Chặn cứng file bí mật (SSH/GPG key, pass, token, profile trình duyệt) cho gateway và mọi tiến trình con
+install -D -m 644 "$SRC/setup/hermes-home/.config/systemd/user/hermes-gateway.service.d/secrets.conf" \
+  "$HOME/.config/systemd/user/hermes-gateway.service.d/secrets.conf"
+systemctl --user daemon-reload
+systemctl --user restart hermes-gateway.service
 systemctl --user enable --now hermes-gateway.service
 sleep 5
 systemctl --user --no-pager --lines=5 status hermes-gateway.service || true

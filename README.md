@@ -165,6 +165,13 @@ hermes config set --force plugins.entries.jev-judge.settings.mode enforce && sys
 
 ## Bảo mật
 
+- **File bí mật bị chặn cứng** bằng drop-in systemd
+  [secrets.conf](setup/hermes-home/.config/systemd/user/hermes-gateway.service.d/secrets.conf) (script 30 cài):
+  `InaccessiblePaths` cho `~/.ssh`, `~/.gnupg`, `~/.password-store`, keyring, `~/.npmrc`, `~/.docker`,
+  `~/.config/gh`, token của các công cụ AI, profile trình duyệt, lịch sử shell, socket gpg-agent và keyring.
+  Gateway, terminal của agent và cron đều nhận `Permission denied` ở các đường dẫn này. SOUL cũng cấm đọc chúng.
+  Không chặn được `~/.hermes/.env` (gateway cần nó). Thêm đường dẫn mới vào `secrets.conf` rồi:
+  `systemctl --user daemon-reload && systemctl --user restart hermes-gateway`.
 - Không commit `.env`. Repo chỉ có file mẫu (`.env.example`); key và token chỉ nằm trong `~/.hermes/.env` (600).
 - Không gửi mật khẩu hay token qua bot: tin nhắn đi qua máy chủ Telegram, nội dung tin và lệnh sắp chạy được gửi
   lên OpenCode Zen để Jev chấm.

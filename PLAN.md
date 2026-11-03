@@ -56,6 +56,15 @@ chạy lại thì thay khối cũ) và đặt `terminal.cwd: ~/hermes`. Agent ch
 `todo`, `skills`) vẫn được dùng. Đây là quy tắc trong prompt: model 9B có thể không tuân. Từ 2026-11-03 agent
 chạy bằng user chính (mục 2.2b), nên ngoài quy tắc này chỉ còn jev-judge enforce chặn lệnh phá hoại hay lấy dữ liệu.
 
+### 2.2c Chặn cứng file bí mật (2026-11-03)
+
+SOUL có mục "Secrets: never read", nhưng model 9B không luôn tuân, nên `setup/30-gateway.sh` cài drop-in
+`hermes-gateway.service.d/secrets.conf` với `InaccessiblePaths` (SSH/GPG key, pass, keyring, token npm/docker/gh/AI CLI,
+profile trình duyệt, lịch sử shell, socket gpg-agent/keyring, `/run/docker.sock` nếu có lúc khởi động).
+Đã kiểm tra bằng `nsenter` vào namespace của gateway: `~/.ssh`, `~/.npmrc`, `~/.password-store` trả `Permission denied`,
+`~/hermes` và `~/.hermes` vẫn đọc được, Telegram vẫn kết nối. Giới hạn: không chặn `~/.hermes/.env`; `hermes` CLI
+chạy tay ngoài service không bị chặn; docker khởi động sau gateway thì socket không bị che (nhóm `docker` = root).
+
 ### 2.2b Chuyển sang chạy bằng user chính (2026-11-03): BỎ sandbox
 
 Theo lựa chọn của bạn, gateway, healthcheck, plugin và dữ liệu agent chuyển từ `hermes` sang user chính:
