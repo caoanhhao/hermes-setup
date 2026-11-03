@@ -43,6 +43,9 @@ Có hai cách. Cả hai dùng chung các script trong `setup/`, đọc file mẫ
 
 ### Cách 1: sandbox user `hermes` (an toàn hơn)
 
+Máy hiện tại không còn dùng cách này (user `hermes` và `/srv/agent-share` đã xoá ngày 2026-11-03); các bước dưới đây
+dựng lại sandbox từ đầu.
+
 Agent chạy bằng user riêng không có sudo và không đọc được home của bạn.
 
 ```bash

@@ -95,8 +95,9 @@ Theo lựa chọn của bạn, gateway, healthcheck, plugin và dữ liệu agen
    mới sau khi chép bị lỗi ở plugin tool-slimmer (`plugin-sources` không tìm thấy).
 
 Kết quả: gateway chạy bằng user chính, Telegram polling kết nối, healthcheck OK, jev-judge `enforce`, skill-router
-gợi ý `github`. User `hermes` và dữ liệu của nó giữ nguyên để quay lại (bật lại service và linger của nó, tắt
-service của user chính). Hệ quả: agent có toàn quyền của user chính (`~/.ssh`, `~/.password-store`, cookie trình duyệt,
+gợi ý `github`. Cùng ngày đã dọn hẳn bản sandbox: `userdel -r hermes` (kèm `/home/hermes`), `groupdel agentshare`,
+xoá `/srv/agent-share` và `/etc/systemd/system/user-1002.slice.d`. Muốn quay lại sandbox thì cài lại theo cách 1 trong
+README (script 00 tạo lại user và thư mục chia sẻ). Hệ quả: agent có toàn quyền của user chính (`~/.ssh`, `~/.password-store`, cookie trình duyệt,
 dự án), nhóm `docker` tương đương root, nhóm `input` đọc và giả lập được bàn phím, chuột.
 
 ### 2.3 Ollama
