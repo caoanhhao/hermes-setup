@@ -1,0 +1,6 @@
+[Unit]
+Description=Agent healthcheck (Ollama, Jev endpoint, Hermes gateway)
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/agent-healthcheck

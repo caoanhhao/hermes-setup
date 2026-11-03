@@ -1,0 +1,27 @@
+# Hermes config cho user `hermes`. Chỉ ghi các giá trị khác mặc định;
+# bản đầy đủ ở /opt/hermes-agent/cli-config.yaml.example.
+
+_config_version: 52
+
+model:
+  provider: "custom"                    # alias "ollama" cũng trỏ về custom
+  base_url: "http://127.0.0.1:11434/v1"
+  api_key: "ollama"
+  default: "Qwen3.5-9B-DeepSeek-V4-Flash-GGUF-50k:latest"   # 9B Q4_K_M, có tools + thinking, num_ctx 50000
+  context_length: 50000
+  ollama_num_ctx: 50000                 # pin VRAM: khoảng 6.3 GB, 100% GPU (đo ngày 2026-11-03)
+
+terminal:
+  backend: "local"                      # chạy với quyền user hermes, đây chính là sandbox
+  cwd: "~/hermes"                      # chỉ được ghi ở đây (setup/11-soul.sh)
+
+# Không có display hay trình duyệt: bỏ browser và computer_use khỏi mọi platform.
+# `web` là toolset tìm kiếm/fetch qua HTTP, không bật trình duyệt.
+platform_toolsets:
+  cli: [web, terminal, file, skills, todo, cronjob, memory, session_search, clarify]
+  telegram: [web, terminal, file, skills, todo, cronjob, memory, session_search, clarify]
+
+telemetry:
+  shared_metrics:
+    enabled: false
+    send: false

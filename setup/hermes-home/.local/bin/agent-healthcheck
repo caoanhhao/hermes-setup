@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Healthcheck cho agent 24/7 (user hermes, chạy bởi agent-healthcheck.timer).
+# Kiểm tra Ollama, endpoint Jev (OpenCode Zen) và gateway; lỗi thì nhắn Telegram qua Bot API.
+# Chỉ báo khi trạng thái đổi (OK -> lỗi, lỗi -> OK) để không spam.
+set -uo pipefail
+
+ENV_FILE=$HOME/.hermes/.env
+STATE=$HOME/.local/state/agent-healthcheck.last
+set -a; . "$ENV_FILE"; set +a
+
+problems=()
+
+curl -fsS -m 10 http://127.0.0.1:11434/api/tags >/dev/null 2>&1 || problems+=("Ollama không trả lời ở 127.0.0.1:11434")
+
+jev=$(curl -sS -m 15 -o /dev/null -w '%{http_code}' "${TYPESAFE_BASE_URL:-https://opencode.ai/zen/v1/systemone}" \
+  -H "Authorization: Bearer ${TYPESAFE_API_KEY:-}" -H 'Content-Type: application/json' \
+  -d "{\"model\":\"${TYPESAFE_MODEL:-jev-1.13-free}\",\"state\":\"healthcheck\",\"questions\":{\"q\":{\"type\":\"noul\",\"instructions\":\"Is this a healthcheck?\"}}}" 2>/dev/null)
+[[ $jev == 200 ]] || problems+=("Jev ${TYPESAFE_MODEL:-jev-1.13-free} trả HTTP ${jev:-000}")
+
+systemctl --user is-active --quiet hermes-gateway.service 2>/dev/null || problems+=("hermes-gateway.service không chạy")
+
+if ((${#problems[@]})); then status="FAIL: $(IFS='; '; echo "${problems[*]}")"; else status=OK; fi
+echo "$(date -Is) $status"
+
+mkdir -p "$(dirname "$STATE")"
+last=$(cat "$STATE" 2>/dev/null || echo OK)
+echo "$status" > "$STATE"
+
+allowed=${TELEGRAM_ALLOWED_USERS:-}
+chat=${TELEGRAM_HOME_CHANNEL:-${allowed%%,*}}
+if [[ $status != "$last" && -n ${TELEGRAM_BOT_TOKEN:-} && -n $chat ]]; then
+  [[ $status == OK ]] && text="✅ agent healthcheck: đã ổn lại" || text="⚠️ agent healthcheck: $status"
+  curl -sS -m 15 -o /dev/null "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+    --data-urlencode "chat_id=$chat" --data-urlencode "text=$text" || true
+fi
+[[ $status == OK ]]

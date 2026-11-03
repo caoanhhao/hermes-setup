@@ -1,0 +1,4 @@
+# Không commit key, token
+.env
+*.env
+!*.env.example

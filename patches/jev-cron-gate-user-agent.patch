@@ -1,0 +1,13 @@
+diff --git a/gate.py b/gate.py
+index 7bd3acf..4f6ff89 100644
+--- a/gate.py
++++ b/gate.py
+@@ -114,7 +114,7 @@ def ask_jev(state, question, timeout=15):
+     body = json.dumps({"model": os.environ.get("TYPESAFE_MODEL", "jev-latest"), "state": state,
+                        "questions": {"useful": {"type": "noul", "instructions": question}}}).encode()
+     req = urllib.request.Request(os.environ.get("TYPESAFE_BASE_URL", DEFAULT_URL), data=body, method="POST",
+-                                 headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
++                                 headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json", "User-Agent": "hermes-jev-plugin/0.1 (+opencode-zen)"})
+     try:
+         with urllib.request.urlopen(req, timeout=timeout) as r:
+             return float(json.load(r)["answers"]["useful"]["noul"]), None

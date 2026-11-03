@@ -1,0 +1,13 @@
+diff --git a/jev_router/client.py b/jev_router/client.py
+index 61b491d..6d1d084 100644
+--- a/jev_router/client.py
++++ b/jev_router/client.py
+@@ -312,7 +312,7 @@ class JevClient:
+     def _send(self, url: str, data: bytes, headers: dict):
+         """One paced POST, returning the parsed JSON body. Raises."""
+         self._pace(url)
+-        req = urllib.request.Request(url, data=data, method="POST", headers=headers)
++        req = urllib.request.Request(url, data=data, method="POST", headers={"User-Agent": "hermes-jev-plugin/0.1 (+opencode-zen)", **headers})
+         with self._urlopen(req, timeout=self.timeout) as resp:
+             return json.loads(resp.read())
+ 
