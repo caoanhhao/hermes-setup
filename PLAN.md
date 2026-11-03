@@ -56,6 +56,23 @@ chạy lại thì thay khối cũ) và đặt `terminal.cwd: ~/hermes`. Agent ch
 `todo`, `skills`) vẫn được dùng. Đây là quy tắc trong prompt: model 9B có thể không tuân. Từ 2026-11-03 agent
 chạy bằng user chính (mục 2.2b), nên ngoài quy tắc này chỉ còn jev-judge enforce chặn lệnh phá hoại hay lấy dữ liệu.
 
+### 2.2d Bỏ key khỏi môi trường terminal (2026-11-03)
+
+Thử qua Telegram: model vẫn chạy `printenv` dù SOUL cấm. Hermes che `TYPESAFE_API_KEY` thành `***` ở chỗ hiển thị,
+nhưng biến vẫn có trong môi trường con (`echo $TYPESAFE_API_KEY | base64` lấy được). Hermes chỉ tự bỏ các tên nó
+biết (`TELEGRAM_BOT_TOKEN`, `GH_TOKEN`...) và tên do plugin khai báo qua `TerminalEnvironmentProvider.strip_env_keys`.
+Lần đầu thử plugin khai báo `TerminalEnvironmentProvider.strip_env_keys`: chỉ có tác dụng cho lệnh nền/PTY
+(`_sanitize_subprocess_env`), vì lệnh thường đi qua `_make_run_env` với danh sách plugin rỗng; Telegram vẫn thấy key.
+Cách đang dùng: manifest `~/.hermes/plugins/platforms/secret-env-strip/plugin.yaml` (`kind: platform`, không code, không
+bật) khai báo `TYPESAFE_API_KEY`, `OPENCODE_API_KEY` là `secret: true` trong `optional_env`. Hermes đọc secret env của mọi
+manifest platform ở mỗi lần tạo tiến trình con. Đã kiểm tra: `_make_run_env` và `_sanitize_subprocess_env` đều bỏ hai key
+và token Telegram, giữ `TYPESAFE_BASE_URL`/`TYPESAFE_MODEL`; bỏ manifest đi thì `_make_run_env` lại còn key.
+Skill-router vẫn gợi ý được, healthcheck OK.
+
+Lỗi gặp khi bật plugin sau lúc chuyển user: pm đặt tên `plugin-sources/<plugin>-<sha256(đường dẫn plugin)[:16]>`,
+nên lock chép từ `/home/hermes` trỏ tới khoá cũ (`tool-slimmer-dff15d01…` thay vì `…5fc56851…`) và `uv lock` báo
+"Distribution not found". Script 50 giờ tính lại khoá cho mọi plugin và đổi tên trong lock lẫn thư mục.
+
 ### 2.2c Chặn cứng file bí mật (2026-11-03)
 
 SOUL có mục "Secrets: never read", nhưng model 9B không luôn tuân, nên `setup/30-gateway.sh` cài drop-in

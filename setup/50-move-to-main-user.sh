@@ -44,3 +44,16 @@ grep -rlaF --exclude-dir=logs --exclude-dir=sessions --exclude='*.db*' -- "$OLD_
       if file -b --mime-encoding "$f" | grep -q binary; then echo "  bỏ qua file nhị phân: $f"
       else sed -i "s#$OLD_HOME#$NEW_HOME#g" "$f" && echo "  $f"; fi
     done
+
+step "Đổi khoá thư mục nguồn plugin trong môi trường Python"
+# pm đặt tên plugin-sources/<plugin>-<sha256(đường dẫn plugin)[:16]>; đường dẫn đổi thì khoá đổi, lock cũ hết khớp
+for plugin_dir in "$NEW_HOME"/.hermes/plugins/*/; do
+  name=$(basename "$plugin_dir")
+  old_key=$name-$(printf '%s' "$OLD_HOME/.hermes/plugins/$name" | sha256sum | cut -c1-16)
+  new_key=$name-$(printf '%s' "$NEW_HOME/.hermes/plugins/$name" | sha256sum | cut -c1-16)
+  grep -rlaF -- "$old_key" "$NEW_HOME/.hermes/installs" 2>/dev/null | while read -r f; do
+    file -b --mime-encoding "$f" | grep -q binary || sed -i "s#$old_key#$new_key#g" "$f"
+  done
+  find "$NEW_HOME/.hermes/installs" -depth -type d -name "$old_key" -execdir mv {} "$new_key" \; 2>/dev/null
+done
+echo "  xong"

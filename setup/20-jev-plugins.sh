@@ -58,6 +58,12 @@ set_cfg tool_slimmer.jev.base_url "$JEV_BASE"
 set_cfg tool_slimmer.jev.model "$JEV_MODEL"
 set_cfg tool_slimmer.jev.api_key_env TYPESAFE_API_KEY
 
+step "Manifest secret-env-strip (bỏ TYPESAFE_API_KEY khỏi terminal, cron script, execute_code)"
+# Chỉ là manifest platform, không bật: Hermes đọc secret env của nó ở mỗi lần tạo tiến trình con.
+SRC=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+install -D -m 644 "$SRC/setup/hermes-home/.hermes/plugins/platforms/secret-env-strip/plugin.yaml" \
+  "$HOME/.hermes/plugins/platforms/secret-env-strip/plugin.yaml"
+
 step "Enable"
 for p in jev-judge jev-skill-router jev-cron-gate tool-slimmer; do
   hermes plugins enable "$p" || echo "  LỖI enable $p"

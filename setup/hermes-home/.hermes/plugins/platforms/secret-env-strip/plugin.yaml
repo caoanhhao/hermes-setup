@@ -1,0 +1,12 @@
+# Chỉ là manifest, không có code và không bật. Hermes đọc secret env của mọi manifest platform trong
+# ~/.hermes/plugins/platforms/ ở mỗi lần tạo tiến trình con (terminal, cron script, execute_code) và bỏ các biến đó,
+# trong khi tiến trình gateway (nơi plugin Jev chạy) vẫn giữ. Thêm tên biến bí mật khác vào optional_env.
+name: secret-env-strip
+kind: platform
+version: 0.1.0
+description: Manifest-only. Declares secret env vars Hermes must strip from every subprocess the agent spawns.
+optional_env:
+  - name: TYPESAFE_API_KEY
+    secret: true
+  - name: OPENCODE_API_KEY
+    secret: true
