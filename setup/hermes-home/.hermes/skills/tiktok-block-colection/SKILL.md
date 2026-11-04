@@ -1,6 +1,6 @@
 ---
 name: tiktok-block-colection
-version: 4.1.0
+version: 4.2.0
 author: caoanhhao
 license: mit
 description: Block các kênh TikTok có video nằm trong collection "block" của user, sau khi gỡ hết video khỏi collection đó. Chạy ngầm, không chiếm màn hình.
@@ -45,8 +45,10 @@ nếu là `chưa đăng nhập` hoặc `bấm Profile không mở được trang
 `SKILL_DIR/scripts/tnb.sh login` để tự đăng nhập TikTok trong trình duyệt của Hermes.
 Không bao giờ tự gõ mật khẩu hay giải captcha.
 
-**Không** tự bấm, gõ hay chụp màn hình bằng hypruse, không mở trình duyệt khác: chỉ chạy `tnb.sh run`.
-Lệnh có thể chạy lại bất cứ lúc nào: kênh đã block sẽ báo "đã block từ trước".
+**Gặp lỗi thì báo user rồi dừng lượt trả lời.** Không tự gỡ lỗi: không gọi `hypruse`, không chạy lệnh
+`tnb.sh` nào khác, không tự mở hay đóng Chrome, không đọc hay sửa script. User sẽ quyết định chạy lại.
+`tnb.sh run` tự tắt trình duyệt của Hermes khi xong (kể cả khi lỗi).
+Chạy lại an toàn khi user yêu cầu: kênh đã block sẽ báo "đã block từ trước".
 
 ## Lệnh làm gì (để hiểu, không cần gọi lẻ)
 

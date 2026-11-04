@@ -20,6 +20,8 @@ WS=9
 # "tnb.sh login"), class cửa sổ riêng "hermes-chrome" để không lẫn với Chrome của user. Chrome của profile mới
 # không tự bật cây accessibility nên phải ép bằng --force-renderer-accessibility.
 PROFILE=${HERMES_CHROME_PROFILE:-$HOME/.local/share/hermes-chrome}
+# Trang của collection "block" (id cố định của collection): dùng khi tab Collections không nhận lệnh bấm.
+COLLECTION_URL=${TNB_COLLECTION_URL:-https://www.tiktok.com/@USER/collection/block-ID}
 CLASS=hermes-chrome
 CHROME_FLAGS=(--user-data-dir="$PROFILE" --class="$CLASS" --password-store=basic --no-first-run --force-renderer-accessibility
               --ozone-platform=x11 --disable-backgrounding-occluded-windows
@@ -232,8 +234,16 @@ case "${1:-}" in
     exec 2>>"$LOG"
     echo "== $(date '+%F %T') run" >&2
     "$0" start >/dev/null || { echo "lỗi: không mở được trình duyệt của Hermes ở workspace $WS"; exit 1; }
-    finish() { a=$(chrome_addr); [ -n "$a" ] && hypruse hypr close_window "$a" >/dev/null || true; }
+    # Xong (kể cả khi lỗi hay bị ngắt) thì tắt hẳn trình duyệt của Hermes: đóng cửa sổ, chờ Chrome thoát,
+    # còn tiến trình nào của profile này thì gửi TERM.
+    finish() {
+      trap - EXIT INT TERM HUP
+      a=$(chrome_addr); [ -n "$a" ] && hypruse hypr close_window "$a" >/dev/null 2>&1 || true
+      for _ in $(seq 20); do pgrep -u "$(id -u)" -f -- "--user-data-dir=$PROFILE" >/dev/null || return 0; sleep 0.5; done
+      pkill -TERM -u "$(id -u)" -f -- "--user-data-dir=$PROFILE" || true
+    }
     trap finish EXIT
+    trap 'exit 130' INT TERM HUP
     list=$("$0" collection) || { echo "lỗi: $list"; exit 1; }
     if [ "$list" = empty ]; then echo "collection block trống, không có kênh nào để block"; exit 0; fi
     if r=$("$0" remove); then echo "đã gỡ ${r#removed } video khỏi collection block"; else echo "lỗi khi gỡ video: $r"; fi
@@ -284,10 +294,19 @@ case "${1:-}" in
     # Lệnh bấm qua accessibility đôi khi không mở menu: bấm lại tới khi menu có mục Block.
     press_until "$w" Actions Block "không mở được menu Actions (không có Block)"
     sleep 1
-    press_row "$w" Block || { echo "failed: menu không có Block"; exit 1; }
-    sleep 2
+    # Bấm mục Block trong menu rồi chờ hộp thoại xác nhận (tối đa 10 giây); chưa thấy thì bấm lại, tối đa 3 lần.
     # Hộp thoại "Block <handle> (...)?" có Cancel và Block; nút Block của hộp thoại nằm cùng hàng với Cancel.
-    read -r _ cy < <(buttons "$w" Cancel | head -1) || { echo "failed: không thấy hộp thoại xác nhận"; exit 1; }
+    cy=""
+    for _ in 1 2 3; do
+      press_row "$w" Block || true
+      for _ in $(seq 10); do
+        read -r _ cy < <(buttons "$w" Cancel | head -1) && break
+        cy=""; sleep 1
+      done
+      [ -n "$cy" ] && break
+      wait_any "$w" Block 1 || press_until "$w" Actions Block "không mở lại được menu Actions"
+    done
+    [ -n "$cy" ] || { echo "failed: không thấy hộp thoại xác nhận"; exit 1; }
     press_row "$w" Block "$cy" || { echo "failed: không thấy nút Block trong hộp thoại"; exit 1; }
     # Chờ nút Unblock tối đa 20 giây; hộp thoại còn (lần bấm không ăn) thì bấm lại nút Block của nó.
     for i in $(seq 20); do
@@ -322,8 +341,19 @@ case "${1:-}" in
       case "$(wait_name "$w" Collections 1 || true)" in "Collections "[1-9]*) break ;; esac
       sleep 0.5
     done
-    press_until "$w" Collections "block " "không thấy collection block trong tab Collections"
-    press_until "$w" "block " "Manage videos" "trang collection block không mở"
+    # Tab Collections của Chrome XWayland thường bỏ qua lệnh bấm qua accessibility (không gửi được phím Enter
+    # dự phòng vì cửa sổ XWayland không nhận phím chạy ngầm): bấm 2 lần, không ăn thì mở thẳng trang collection.
+    n=$(wait_name "$w" Collections 5) || { echo "failed: không thấy tab Collections"; exit 1; }
+    for _ in 1 2; do
+      hypruse click_ui "$n" --window "$w" --index 0 >/dev/null 2>&1 || true
+      wait_any "$w" "block " 6 && break
+    done
+    if wait_any "$w" "block " 1; then
+      press_until "$w" "block " "Manage videos" "trang collection block không mở"
+    else
+      "$0" open "$COLLECTION_URL" >/dev/null
+      wait_any "$w" "Manage videos" 60 || { echo "failed: trang collection block không mở"; exit 1; }
+    fi
     # Sidebar chiếm gần hết 60 phần tử mà hypruse ui trả về: thu gọn để thấy lưới video.
     if n=$(wait_name "$w" "Collapse sidebar" 1); then hypruse click_ui "$n" --window "$w" --index 0 >/dev/null || true; fi
     sleep 4
