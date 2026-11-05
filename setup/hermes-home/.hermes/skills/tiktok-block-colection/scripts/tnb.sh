@@ -263,9 +263,10 @@ case "${1:-}" in
     old=$(title)
     # Không gõ URL: hypruse làm rơi "/", "@", "_" và ký tự cần Shift khi gõ vào Chrome.
     # Đưa URL cho Chrome đang chạy: nó mở tab mới trong cửa sổ duy nhất (ở workspace 9).
-    # Lệnh phụ này giao URL cho Chrome đang chạy rồi có thể crash (trong môi trường của Hermes): chạy trong
-    # subshell để bash không in thông báo "core dumped" ra output.
-    ( google-chrome-stable "${CHROME_FLAGS[@]}" "$url" ) >/dev/null 2>&1 || true
+    # Lệnh phụ phải chạy qua Hyprland (hypruse launch), không chạy thẳng từ đây: gateway của Hermes chặn
+    # ~/.config/google-chrome (InaccessiblePaths), Chrome cần thư mục đó để bật crashpad nên crash (SIGTRAP)
+    # trước khi kịp giao URL. Không có cửa sổ mới nên launch báo lỗi sau --wait: bỏ qua.
+    hypruse launch --workspace "$WS" --wait 2 -- google-chrome-stable "${CHROME_FLAGS[@]}" "$url" >/dev/null 2>&1 || true
     for _ in $(seq 20); do
       [ "$(title)" != "$old" ] && break
       sleep 0.5
@@ -367,7 +368,14 @@ case "${1:-}" in
       sleep 2
     done
     list=$(printf '%s\n' "$seen" | grep -vx "$me" | grep -v '^$' || true)
-    if [ -z "$list" ]; then echo empty; else echo "$list"; fi
+    [ -n "$list" ] && { echo "$list"; exit 0; }
+    # Không có kênh nào: chỉ báo trống khi trang nói vậy hoặc lưới đã có thẻ video (video đã xoá, của chính mình),
+    # còn không thì lưới chưa tải, để "collection" chạy lại.
+    if wait_any "$w" "No videos in this collection" 1 || wait_any "$w" "0 videos" 1 ||
+       hypruse ui --window "$w" --name " created by " --json 2>/dev/null | grep -q '"role": "link"'; then
+      echo empty; exit 0
+    fi
+    echo "failed: lưới video của collection block chưa tải"; exit 1
     ;;
   remove)
     # Trên trang collection block (sau "collection"): Manage videos → Select all → Remove (N) → Remove.
