@@ -8,8 +8,7 @@ model:
   base_url: "http://127.0.0.1:11434/v1"
   api_key: "ollama"
   default: "Qwen3.5-9B-DeepSeek-V4-Flash-GGUF-50k:latest"   # 9B Q4_K_M, có tools + thinking, num_ctx 50000
-  context_length: 50000
-  ollama_num_ctx: 50000                 # pin VRAM: khoảng 6.3 GB, 100% GPU (đo ngày 2026-11-03)
+  ollama_num_ctx: 0
 
 terminal:
   backend: "local"                      # chạy với quyền user hermes, đây chính là sandbox
