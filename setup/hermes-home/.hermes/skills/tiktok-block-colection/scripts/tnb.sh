@@ -291,9 +291,13 @@ case "${1:-}" in
     fi
     me=$(js "(e => e ? e.getAttribute('href').replace(/^\\/@/, '').split('?')[0] : '')(document.querySelector('$SEL_PROFILE'))" || true)
     [ -n "$me" ] || me=$(printf '%s\n' "$url" | grep -o '/@[^/]*' | tr -d '/@' | head -1)
-    # Chờ lưới hiện thẻ video hoặc chữ "trống", rồi cuộn tới cuối cho tới khi số thẻ và số link tác giả không đổi
-    # trong 3 giây (lưới nạp dần, link tác giả của thẻ có thể đến sau thẻ).
-    wait_js "document.querySelector('$SEL_ITEM') || $(has_text "$TXT_EMPTY")" 60 >/dev/null || true
+    # Trang đã tải mà chưa có thẻ video nào: đợi 10 giây xem lại một lần, vẫn không có thì collection trống.
+    if ! js "!!document.querySelector('$SEL_ITEM')" | grep -qx true &&
+       ! wait_js "document.querySelector('$SEL_ITEM')" 10 >/dev/null; then
+      echo empty; exit 0
+    fi
+    # Cuộn tới cuối cho tới khi số thẻ và số link tác giả không đổi trong 3 giây (lưới nạp dần, link tác giả
+    # của thẻ có thể đến sau thẻ).
     list=$(js "(async () => {
       const count = () => document.querySelectorAll('$SEL_ITEM').length + '/' + document.querySelectorAll('$SEL_ITEM_AUTHOR').length;
       let last = '', same = 0;
@@ -308,11 +312,9 @@ case "${1:-}" in
       return [...new Set(hs)].filter(h => /^[A-Za-z0-9._]+\$/.test(h) && h !== '$me').join('\\n');
     })()") || { echo "failed: không đọc được lưới video của collection block"; exit 1; }
     [ -n "$list" ] && { echo "$list"; exit 0; }
-    # Không có kênh nào: báo trống khi trang nói vậy, hoặc lưới có thẻ video mà suốt 10 giây không thẻ nào có link
-    # tác giả (video đã xoá, của chính mình). Còn không thì lưới chưa tải, để "collection" chạy lại.
-    if js "$(has_text "$TXT_EMPTY")" | grep -qx true; then echo empty; exit 0; fi
-    if js "!!document.querySelector('$SEL_ITEM')" | grep -qx true &&
-       ! wait_js "[...document.querySelectorAll('$SEL_ITEM_AUTHOR')].some(a => !a.href.includes('/@$me'))" 10 >/dev/null; then
+    # Có thẻ video mà không có kênh nào: báo trống khi suốt 10 giây không thẻ nào có link tác giả (video đã xoá,
+    # của chính mình). Còn không thì lưới chưa tải xong, để "collection" chạy lại.
+    if ! wait_js "[...document.querySelectorAll('$SEL_ITEM_AUTHOR')].some(a => !a.href.includes('/@$me'))" 10 >/dev/null; then
       echo empty; exit 0
     fi
     echo "failed: lưới video của collection block chưa tải"; exit 1
